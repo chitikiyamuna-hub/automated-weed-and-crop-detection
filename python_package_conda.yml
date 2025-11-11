@@ -1,0 +1,40 @@
+name: Python Package using Conda
+
+on: [push, pull_request] # Added pull_request for better CI coverage
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    # Removed 'strategy: max-parallel: 5' as it's unnecessary without a build matrix.
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4 # Use the latest action version for security/features
+
+    - name: Set up Conda Environment and Install Dependencies
+      # This action automatically downloads Miniconda, sets up the PATH,
+      # installs the specified Python version, and creates/updates the environment
+      # based on the provided environment.yml file.
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: '3.8' # Using '3.8' instead of a specific micro-version (3.8.16) is recommended
+        environment-file: environment.yml
+        auto-update-conda: true
+        auto-activate-base: true # Ensures the environment is active for subsequent steps
+
+    - name: Install Linting and Testing Tools (If not in environment.yml)
+      # This ensures all necessary tools (flake8 and pytest) are installed in the activated environment.
+      # Ideally, these tools should be listed in your environment.yml file for completeness.
+      run: |
+        conda install -y flake8 pytest
+        
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Test with pytest
+      run: |
+        pytest
